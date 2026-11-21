@@ -135,15 +135,22 @@ def scale_test(lookups=1_000, seed=469):
         for rule in rules:
             trie.insert(*rule)
 
-        start = time.perf_counter()
-        most_steps = max(trie.lookup(a)[1] for a in addresses)
-        trie_us = (time.perf_counter() - start) / lookups * 1e6
+        # Run each timing several times and keep the fastest, so background noise doesn't skew it
+        trie_runs = []
+        for _ in range(5):
+            start = time.perf_counter()
+            most_steps = max(trie.lookup(a)[1] for a in addresses)
+            trie_runs.append((time.perf_counter() - start) / lookups * 1e6)
+        trie_us = min(trie_runs)
 
         parsed = parse_rules(rules)
-        start = time.perf_counter()
-        for a in addresses:
-            linear_lookup(parsed, a)
-        list_us = (time.perf_counter() - start) / lookups * 1e6
+        list_runs = []
+        for _ in range(3):
+            start = time.perf_counter()
+            for a in addresses:
+                linear_lookup(parsed, a)
+            list_runs.append((time.perf_counter() - start) / lookups * 1e6)
+        list_us = min(list_runs)
         print(f"{count:>8,} {trie_us:>10.1f} {list_us:>10.1f} {most_steps:>16} {count:>12,}")
 
 
